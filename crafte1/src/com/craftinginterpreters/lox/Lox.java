@@ -9,7 +9,9 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class Lox {
+    private static final Interpreter interpreter = new Interpreter();
     static boolean hadError = false;
+    static boolean hadRuntimeError = false;
 
     public static void main(String[] args) throws IOException{
         //如果是源码有多个地址就报错
@@ -32,6 +34,8 @@ public class Lox {
         //如果发生错误，以非零的结束代码退出
         if (hadError)
             System.exit(65);
+        //从文件中运行脚本发生错误时，退出
+        if (hadRuntimeError) System.exit(70);
     }
     private static void runPrompt() throws IOException {
         InputStreamReader input = new InputStreamReader(System.in);
@@ -56,9 +60,8 @@ public class Lox {
         Expr expression = parser.parse();
         //如果存在语法错误就返回
         if (hadError) return;
-
-        //将转换好的语法标记打印出来（字符串形式）
-        System.out.println(new AstPrinter().print(expression));
+        //调用解释器
+        interpreter.interpret(expression);
 
     }
 
@@ -75,5 +78,15 @@ public class Lox {
         } else {
             report(token.line, " at '"+token.lexeme+"'",message);
         }
+    }
+
+    /**
+     * 运行时异常
+     * @param error
+     */
+    static void runtimeError(RuntimeError error) {
+        System.err.println(error.getMessage() +
+                "\n[line "+ error.token.line +"]");
+        hadRuntimeError = true;
     }
 }
