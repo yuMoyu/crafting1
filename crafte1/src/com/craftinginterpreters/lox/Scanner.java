@@ -171,6 +171,11 @@ class Scanner {
             Lox.error(line, "Unterminated string.");
             return;
         }
+        //消费右边的"
+        advance();
+        //只取双引号内字符串
+        String value = source.substring(start+1,current-1);
+        addToken(STRING,value);
     }
     /**
      * 判断元素是否与期望的一致
