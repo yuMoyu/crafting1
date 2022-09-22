@@ -1,18 +1,21 @@
 package com.craftinginterpreters.lox;
 
+import java.util.List;
+
 /**
  * 解释器-计算值
  */
-class Interpreter implements Expr.Visitor<Object>{
+class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>{
 
     /**
      * 供外部调用接口，目的是为了调用核心的visit方法
      * @param expression
      */
-    void interpret(Expr expression) {
+    void interpret(List<Stmt> statements) {
         try {
-            Object value = evaluate(expression);
-            System.out.println(stringify(value));
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
@@ -159,5 +162,22 @@ class Interpreter implements Expr.Visitor<Object>{
     private Object evaluate(Expr expr) {
         //括号内是什么类型的Expr就调用什么visit方法
         return expr.accept(this);
+    }
+
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
     }
 }

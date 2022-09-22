@@ -1,5 +1,6 @@
 package com.craftinginterpreters.lox;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.craftinginterpreters.lox.TokenType.*;
@@ -29,16 +30,41 @@ class Parser {
      * 初始方法启动解析器
      * @return
      */
-    Expr parse() {
-        try {
-            return expression();
-        } catch (ParserError error) {
-            return null;
+    List<Stmt> parse() {
+        List<Stmt> statements = new ArrayList<>();
+        while (!isAtEnd()) {
+            statements.add(statement());
         }
+        return statements;
     }
 
     private Expr expression() {
         return equality();
+    }
+
+    /**
+     * 返回stmt语句，带print就算print语句，否则算表达式
+     * @return
+     */
+    private Stmt statement() {
+        if (match(PRINT)) return printStatement();
+        return expressionStatement();
+    }
+
+    /**
+     * 将print语句组装为stmt类型的print
+     * @return
+     */
+    private Stmt printStatement() {
+        Expr value = expression();
+        //如果当前语句以分号结尾就是正常
+        consume(SEMICOLON, "Expect ';' after value.");
+        return new Stmt.Print(value);
+    }
+    private Stmt expressionStatement() {
+        Expr expr = expression();
+        consume(SEMICOLON, "Expect ';' after expression.");
+        return new Stmt.Expression(expr);
     }
     private Expr equality() {
         Expr expr = comparison();

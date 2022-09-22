@@ -57,11 +57,11 @@ public class Lox {
         List<Token> tokens = scanner.scanTokens();
         //利用解析树和语法树将语法标记进行组合
         Parser parser = new Parser(tokens);
-        Expr expression = parser.parse();
+        List<Stmt> statements = parser.parse();
         //如果存在语法错误就返回
         if (hadError) return;
         //调用解释器
-        interpreter.interpret(expression);
+        interpreter.interpret(statements);
 
     }
 

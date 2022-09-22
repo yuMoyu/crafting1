@@ -2,6 +2,10 @@ package com.craftinginterpreters.lox;
 
 import java.util.List;
 
+/**
+ * exprStmt       ¡ú expression ";" ;
+ * printStmt      ¡ú "print" expression ";"
+ */
 abstract class Stmt{
  interface Visitor<R> {
     R visitExpressionStmt(Expression stmt);
