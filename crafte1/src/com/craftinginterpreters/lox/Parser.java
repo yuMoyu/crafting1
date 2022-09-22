@@ -33,13 +33,43 @@ class Parser {
     List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(statement());
+            statements.add(declaration());
         }
+
         return statements;
     }
 
     private Expr expression() {
         return equality();
+    }
+
+
+    /**
+     * 此规则用于扩展Lox语法以支持语句
+     * program        → declaration* EOF ;
+     *
+     * declaration    → varDecl //变量
+     *                | statement ;
+     *
+     * statement      → exprStmt
+     *                | printStmt ;
+     *
+     * exprStmt       → expression ";" ;  如：true;
+     * printStmt      → "print" expression ";" ; 如：print true;
+     */
+
+
+    /**
+     * @return
+     */
+    private Stmt declaration() {
+        try {
+            if (match(VAR)) return varDeclaration();
+            return statement();
+        } catch (ParserError error) {
+            synchronize();
+            return null;
+        }
     }
 
     /**
@@ -48,6 +78,7 @@ class Parser {
      */
     private Stmt statement() {
         if (match(PRINT)) return printStatement();
+
         return expressionStatement();
     }
 
@@ -60,6 +91,18 @@ class Parser {
         //如果当前语句以分号结尾就是正常
         consume(SEMICOLON, "Expect ';' after value.");
         return new Stmt.Print(value);
+    }
+    private Stmt varDeclaration() {
+        //name为标识符 如var a = b; name为a
+        Token name = consume(IDENTIFIER,"Expect variable name.");
+        Expr initializer = null;
+        //如果下个字符是=
+        if (match(EQUAL)) {
+            //initializer为等号后面的语句 ,initializer为b
+            initializer = expression();
+        }
+        consume(SEMICOLON,"Expect ';' after variable declaration.");
+        return new Stmt.Var(name,initializer);
     }
     private Stmt expressionStatement() {
         Expr expr = expression();

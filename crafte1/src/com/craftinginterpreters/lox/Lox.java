@@ -14,6 +14,7 @@ public class Lox {
     static boolean hadRuntimeError = false;
 
     public static void main(String[] args) throws IOException{
+
         //如果是源码有多个地址就报错
         if (args.length > 1) {
             System.out.println("Usage:jlox [script]");
@@ -57,7 +58,7 @@ public class Lox {
         List<Token> tokens = scanner.scanTokens();
         //利用解析树和语法树将语法标记进行组合
         Parser parser = new Parser(tokens);
-        List<Stmt> statements = parser.parse();
+        List<Stmt> statements  = parser.parse();
         //如果存在语法错误就返回
         if (hadError) return;
         //调用解释器
