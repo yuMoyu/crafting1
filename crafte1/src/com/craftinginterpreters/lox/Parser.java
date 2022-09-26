@@ -8,7 +8,8 @@ import static com.craftinginterpreters.lox.TokenType.*;
 /**
  * 运用递归向下的方法写解释器，读取语法标记
  * 解析树
- * expression     → equality ;
+ * expression     → assignment ;
+ * assignment     → IDENTIFIER "=" assignment | equality ;
  * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  * term           → factor ( ( "-" | "+" ) factor )* ;
@@ -40,7 +41,7 @@ class Parser {
     }
 
     private Expr expression() {
-        return equality();
+        return assignment();
     }
 
 
@@ -52,7 +53,9 @@ class Parser {
      *                | statement ;
      *
      * statement      → exprStmt
-     *                | printStmt ;
+     *                | printStmt
+     *                | block;
+     * block          → "{" declaration* "}" ;
      *
      * exprStmt       → expression ";" ;  如：true;
      * printStmt      → "print" expression ";" ; 如：print true;
@@ -78,7 +81,8 @@ class Parser {
      */
     private Stmt statement() {
         if (match(PRINT)) return printStatement();
-
+        //如果发现带左括号，就返回block语句
+        if (match(LEFT_BRACE)) return new Stmt.Block(block());
         return expressionStatement();
     }
 
@@ -108,6 +112,40 @@ class Parser {
         Expr expr = expression();
         consume(SEMICOLON, "Expect ';' after expression.");
         return new Stmt.Expression(expr);
+    }
+
+    /**
+     * 块语法
+     * @return
+     */
+    private List<Stmt> block() {
+        //创建空列表
+        List<Stmt> statements = new ArrayList<>();
+        //将块内语句都放入列表
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            statements.add(declaration());
+        }
+        //找到 } 正常结束
+        consume(RIGHT_BRACE, "Expect '}' after block.");
+        return statements;
+    }
+    /**
+     * 赋值表达式，在存在变量的情况下，对其进行二次赋值
+     * @return
+     */
+    private Expr assignment() {
+        Expr expr = equality();
+        if (match(EQUAL)) {
+            Token equals = previous();
+            Expr value = assignment();
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable)expr).name;
+                return new Expr.Assign(name, value);
+            }
+
+            error(equals, "Invalid assignment target.");
+        }
+        return expr;
     }
     private Expr equality() {
         Expr expr = comparison();
@@ -165,6 +203,9 @@ class Parser {
 
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
+        }
+        if (match(IDENTIFIER)) {
+            return new Expr.Variable(previous());
         }
         if (match(LEFT_PAREN)) {
             Expr expr = expression();

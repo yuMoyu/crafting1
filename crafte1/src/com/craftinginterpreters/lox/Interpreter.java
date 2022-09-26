@@ -8,6 +8,8 @@ import java.util.List;
 class Interpreter implements Expr.Visitor<Object>,
         Stmt.Visitor<Void> {
 
+    private Environment environment = new Environment();
+
     /**
      * 供外部调用接口，目的是为了调用核心的visit方法
      * @param statements
@@ -20,6 +22,13 @@ class Interpreter implements Expr.Visitor<Object>,
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
+    }
+
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
     }
 
     @Override
@@ -96,9 +105,14 @@ class Interpreter implements Expr.Visitor<Object>,
         return null;
     }
 
+    /**
+     * 获取变量表达式的值
+     * @param expr
+     * @return
+     */
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return null;
+        return environment.get(expr.name);
     }
 
     /**
@@ -173,6 +187,26 @@ class Interpreter implements Expr.Visitor<Object>,
     private void execute(Stmt stmt) {
         stmt.accept(this);
     }
+
+    void executeBlock(List<Stmt> statements, Environment environment) {
+        //保留全局环境变量
+        Environment previous = this.environment;
+        try {
+            //将environment指向当前环境
+            this.environment = environment;
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = environment;
+        }
+    }
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
     @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         evaluate(stmt.expression);
@@ -188,6 +222,12 @@ class Interpreter implements Expr.Visitor<Object>,
 
     @Override
     public Void visitVarStmt(Stmt.Var stmt) {
+        Object value = null;
+        //如果变量有初始化表达式（等于后面有内容），就对其求值  没有的话，就直接传空
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
+        }
+        environment.define(stmt.name.lexeme, value);
         return null;
     }
 }
